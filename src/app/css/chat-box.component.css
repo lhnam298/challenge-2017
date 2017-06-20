@@ -1,0 +1,16 @@
+.chat-box {
+	width: 500px;
+	height: 500px;
+	bottom: 0px;
+	left: 0px;
+}
+
+.chat-box-output {
+	width: 500px;
+	height: 400px;
+	border: 1px solid;
+}
+
+.input-full-width {
+	width: 100%;
+}

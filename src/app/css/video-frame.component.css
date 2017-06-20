@@ -1,0 +1,11 @@
+.video-frame {
+	width: 300px;
+	word-break: break-word;
+	float: left;
+	margin: 10px;
+}
+
+.avatar-image {
+	background-image: url('#');
+	background-size: cover;
+}
