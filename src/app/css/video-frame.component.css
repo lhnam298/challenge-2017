@@ -9,3 +9,7 @@
 	background-image: url('#');
 	background-size: cover;
 }
+
+video {
+	width: 300px;
+}
