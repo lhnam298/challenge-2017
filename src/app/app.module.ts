@@ -10,6 +10,8 @@ import { MenuBarComponent } from './menu-bar.component';
 import { MediaAreaComponent } from './media-area.component';
 import { VideoFrameComponent } from './video-frame.component';
 import { ChatBoxComponent } from './chat-box.component';
+import { RtcComponent } from './rtc.component';
+import { AuthencationFailureDialog } from './dialog.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +19,11 @@ import { ChatBoxComponent } from './chat-box.component';
     MenuBarComponent,
     MediaAreaComponent,
     VideoFrameComponent,
-    ChatBoxComponent
+    ChatBoxComponent,
+    AuthencationFailureDialog
+  ],
+  entryComponents: [
+    AuthencationFailureDialog
   ],
   imports: [
     BrowserModule,
@@ -32,7 +38,7 @@ import { ChatBoxComponent } from './chat-box.component';
     MenuBarComponent,
     MediaAreaComponent,
     VideoFrameComponent,
-    ChatBoxComponent
+    ChatBoxComponent,
   ]
 })
 

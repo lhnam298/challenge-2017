@@ -1,8 +1,12 @@
 <div class="chat-box">
-	<div class="chat-box-output"></div>
+	<div class="chat-box-output">
+		<md-chip-list *ngFor="let msg of msgs" [ngClass]="msg.msg_type">
+			<md-chip>{{msg.content}}</md-chip>
+		</md-chip-list>
+	</div>
 	<div class="chat-box-input">
 		<md-input-container class="input-full-width">
-			<textarea mdInput placeholder="Type some text"></textarea>
+			<textarea [(ngModel)]="txt" (keyup.enter)="sendMessage()" mdInput placeholder="Type some text"></textarea>
 		</md-input-container>
 	</div>
 </div>
