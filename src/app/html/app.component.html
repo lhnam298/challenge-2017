@@ -1,8 +1,7 @@
 <menu-bar></menu-bar>
 <md-input-container>
-	<input mdInput [(ngModel)]="username" placeholder="Username">
+	<input mdInput [(ngModel)]="lid" placeholder="Login ID">
 </md-input-container>
 <button md-button (click)="connect()" *ngIf="!authenticated">Connect!</button>
-<media-area></media-area>
-<chat-box (onSent)="sendChat($event)" style="display: none"></chat-box>
-<chat-box (onSent)="sendChat($event)" [(msgs)]="msgs"></chat-box>
+<media-area [(username)]="username" [(status)]="status"></media-area>
+<chat-box (onSendChat)="sendChat($event)" (onTransferData)="sendData($event)" (onTransferMeta)="sendMeta($event)" [(msgs)]="msgs"></chat-box>

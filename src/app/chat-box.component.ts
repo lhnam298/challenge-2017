@@ -8,18 +8,27 @@ import { AppComponent } from './app.component';
 })
 
 export class ChatBoxComponent {
-    txt: string;
+    private txt: string;
+
     @Input() msgs: Array<string>;
+    @Output() onSendChat = new EventEmitter<string>();
+    @Output() onTransferData = new EventEmitter<any>();
+    @Output() onTransferMeta = new EventEmitter<any>();
 
     ngOnInit() {
       this.txt = '';
     }
 
-    @Output() onSent = new EventEmitter<string>();
-
-    sendMessage() {
-        this.onSent.emit(this.txt);
+    sendMessage() : void {
+        this.onSendChat.emit(this.txt);
         this.txt = '';
     }
 
+    transferData(chunk) : void {
+      this.onTransferData.emit(chunk);
+    }
+
+    transferMeta(info) : void {
+      this.onTransferMeta.emit(info);
+    }
 }

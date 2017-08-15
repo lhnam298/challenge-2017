@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import * as io from 'socket.io-client';
-import { AuthencationFailureDialog } from './dialog.component';
+import { AuthencationFailureDialog, AlreadyBeUsedDialog } from './dialog.component';
 import { MdDialog } from '@angular/material';
 
 @Component({
@@ -11,13 +11,22 @@ import { MdDialog } from '@angular/material';
 
 export class AppComponent {
 
-    constructor(public dialog: MdDialog) {}
+    constructor(public dialog: MdDialog) {
+
+    }
+
     rtc;
     socket;
     msgs;
-    username;
+    lid;
+    username: string;
+    status: string;
+    room;
     authenticated;
-//    connected;
+
+    incomingFileInfo;
+    incomingFileData;
+    bytesReceived;
 
     public haveLocalMedia = false;
     public myVideo;
@@ -34,16 +43,15 @@ export class AppComponent {
     };
 
     connect() {
-        if (this.haveLocalMedia && this.username !== '') {
-            this.socket.emit('auth', { msg: this.username });
+        if (this.haveLocalMedia && !this.authenticated) {
+            this.socket.emit('auth', { room: this.room, msg: this.lid });
         }
     }
 
     ngOnInit() {
         this.msgs = [];
-        this.username = '';
+        this.room = null;
         this.authenticated = false;
-//        this.connected = false;
         this.getMedia();
 
         this.socket = io();
@@ -54,10 +62,17 @@ export class AppComponent {
 
         this.socket.on('auth', (function (data) {
           if (data.valid) {
-              this.authenticated = true;
-              if (data.ready_for_connect) {
-                  this.createPC();
-                  this.offer();
+              if (data.usable) {
+                  this.authenticated = true;
+                  this.username = data.username;
+                  this.status = data.status;
+                  this.room = data.room;
+                  if (data.connectable) {
+                      this.createPC();
+                      this.offer();
+                  }
+              } else {
+                  this.openDialog(AlreadyBeUsedDialog);
               }
           } else {
               this.openDialog(AuthencationFailureDialog);
@@ -80,7 +95,7 @@ export class AppComponent {
     getMedia() {
         navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: true
+            video: false
         }).then(this.gotUserMedia.bind(this)).catch(this.didntGetUserMedia);
     }
 
@@ -130,7 +145,7 @@ export class AppComponent {
     };
 
     send(msg) {
-        this.socket.emit('message', { msg: msg });
+        this.socket.emit('message', { room: this.room, msg: msg });
     }
 
     createPC() {
@@ -165,21 +180,87 @@ export class AppComponent {
 
     onDataChannelAdded(e) {
         this.dc = e.channel;
-//        this.connected = true;
         this.setupDataHandlers();
     }
 
     setupDataHandlers() {
         this.dc.onmessage = (function(e) {
             var msg = JSON.parse(e.data);
-            this.msgs.push({msg_type: 'receive-msg', content: msg});
+
+            switch(msg.type) {
+              case 'chat':
+                this.msgs.push({msg_type: 'receive-msg', content: msg.content});
+                break;
+
+              case 'candidate':
+                this.startDownload(msg.content);
+                break;
+
+              case 'data':
+                this.progressDownload(msg.content);
+                break;
+
+              default:
+                break;
+            }
+
         }).bind(this);
+    }
+
+    startDownload(data) : void {
+      this.incomingFileInfo = JSON.parse(data.toString());
+      this.incomingFileData = [];
+      this.bytesReceived = 0;
+      console.log( 'incoming file <b>' + this.incomingFileInfo.fileName + '</b> of ' + this.incomingFileInfo.fileSize + ' bytes' );
+    }
+
+    progressDownload(data) : void {
+      this.bytesReceived += data.byteLength;
+      this.incomingFileData.push(data);
+      console.log( 'progress: ' +  ((this.bytesReceived / this.incomingFileInfo.fileSize ) * 100).toFixed( 2 ) + '%' );
+      if( this.bytesReceived === this.incomingFileInfo.fileSize ) {
+          this.endDownload();
+      }
+    }
+
+    endDownload() : void {
+      var blob = new window.Blob(this.incomingFileData);
+      var anchor = document.createElement( 'a' );
+      anchor.href = URL.createObjectURL( blob );
+      anchor.download = this.incomingFileInfo.fileName;
+      anchor.textContent = 'XXXXXXX';
+
+      if( anchor.click ) {
+          anchor.click();
+      } else {
+          var evt = document.createEvent( 'MouseEvents' );
+          evt.initMouseEvent( 'click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null );
+          anchor.dispatchEvent( evt );
+      }
     }
 
     sendChat(msg) {
         this.msgs.push({msg_type: 'send-msg', content: msg});
-//        if (!this.connected) return;
-        var data = JSON.stringify(msg)
+        var data = JSON.stringify({
+          type: 'chat',
+          content: msg
+        });
+        this.dc.send(data);
+    }
+
+    sendMeta(meta) : void {
+        var data = JSON.stringify({
+          type: 'candidate',
+          content: meta
+        });
+        this.dc.send(data);
+    }
+
+    sendData(chunk) : void {
+        var data = JSON.stringify({
+          type: 'data',
+          content: chunk
+        });
         this.dc.send(data);
     }
 

@@ -12,6 +12,8 @@ import { VideoFrameComponent } from './video-frame.component';
 import { ChatBoxComponent } from './chat-box.component';
 import { RtcComponent } from './rtc.component';
 import { AuthencationFailureDialog } from './dialog.component';
+import { AlreadyBeUsedDialog } from './dialog.component';
+import { AttachmentIcon } from './icon.component';
 
 @NgModule({
   declarations: [
@@ -20,10 +22,13 @@ import { AuthencationFailureDialog } from './dialog.component';
     MediaAreaComponent,
     VideoFrameComponent,
     ChatBoxComponent,
-    AuthencationFailureDialog
+    AuthencationFailureDialog,
+    AlreadyBeUsedDialog,
+    AttachmentIcon
   ],
   entryComponents: [
-    AuthencationFailureDialog
+    AuthencationFailureDialog,
+    AlreadyBeUsedDialog
   ],
   imports: [
     BrowserModule,
@@ -34,11 +39,7 @@ import { AuthencationFailureDialog } from './dialog.component';
   ],
   providers: [],
   bootstrap: [
-    AppComponent,
-    MenuBarComponent,
-    MediaAreaComponent,
-    VideoFrameComponent,
-    ChatBoxComponent,
+    AppComponent
   ]
 })
 

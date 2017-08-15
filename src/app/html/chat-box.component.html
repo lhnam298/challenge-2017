@@ -5,6 +5,7 @@
 		</md-chip-list>
 	</div>
 	<div class="chat-box-input">
+		<attachment-icon (onReadContent)="transferData($event)" (onReadInfo)="transferMeta($event)"></attachment-icon>
 		<md-input-container class="input-full-width">
 			<textarea [(ngModel)]="txt" (keyup.enter)="sendMessage()" mdInput placeholder="Type some text"></textarea>
 		</md-input-container>

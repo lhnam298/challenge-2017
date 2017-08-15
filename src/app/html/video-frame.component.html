@@ -1,15 +1,14 @@
-<md-card class="video-frame">
-	<md-card-header>
+<md-card class="video-frame" *ngIf="!hide_video">
+	<md-card-header class="info">
 		<div md-card-avatar class="avatar-image"></div>
-		<md-card-title>Nickname</md-card-title>
-		<md-card-subtitle>Category</md-card-subtitle>
+		<md-card-title>{{username}}</md-card-title>
+		<md-card-subtitle>{{status}}</md-card-subtitle>
 	</md-card-header>
-		<video autoplay></video>
 	<md-card-content>
-		<p>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</p>
+		<video autoplay></video>
 	</md-card-content>
 	<md-card-actions>
 		<button md-button>BUZZ</button>
-		<button md-button>HIDE</button>
+		<button md-button (click)='hideVideo()'>HIDE</button>
 	</md-card-actions>
 </md-card>
