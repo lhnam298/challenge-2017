@@ -10,10 +10,10 @@ import { MenuBarComponent } from './menu-bar.component';
 import { MediaAreaComponent } from './media-area.component';
 import { VideoFrameComponent } from './video-frame.component';
 import { ChatBoxComponent } from './chat-box.component';
-import { RtcComponent } from './rtc.component';
 import { AuthencationFailureDialog } from './dialog.component';
 import { AlreadyBeUsedDialog } from './dialog.component';
 import { AttachmentIcon } from './icon.component';
+import { ProgressBar } from './progress.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +24,8 @@ import { AttachmentIcon } from './icon.component';
     ChatBoxComponent,
     AuthencationFailureDialog,
     AlreadyBeUsedDialog,
-    AttachmentIcon
+    AttachmentIcon,
+    ProgressBar
   ],
   entryComponents: [
     AuthencationFailureDialog,

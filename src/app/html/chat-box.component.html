@@ -3,6 +3,7 @@
 		<md-chip-list *ngFor="let msg of msgs" [ngClass]="msg.msg_type">
 			<md-chip>{{msg.content}}</md-chip>
 		</md-chip-list>
+		<progress-bar></progress-bar>
 	</div>
 	<div class="chat-box-input">
 		<attachment-icon (onReadContent)="transferData($event)" (onReadInfo)="transferMeta($event)"></attachment-icon>
