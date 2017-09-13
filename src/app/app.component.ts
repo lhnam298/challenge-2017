@@ -4,9 +4,9 @@ import { AuthencationFailureDialog, AlreadyBeUsedDialog } from './dialog.compone
 import { MdDialog } from '@angular/material';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './html/app.component.html',
-  styleUrls: ['./css/app.component.css']
+    selector: 'app-root',
+    templateUrl: './html/app.component.html',
+    styleUrls: ['./css/app.component.css']
 })
 
 export class AppComponent {
@@ -14,6 +14,8 @@ export class AppComponent {
     private msgs: Array<any> = [];
     private lid: string;
     private uid: number;
+    private sid: string;
+
     private username: string;
     private status: string;
     private room: number;
@@ -23,15 +25,14 @@ export class AppComponent {
     private incomingFileData: any;
     private bytesReceived: number;
 
-    private videos: Array<any> = [];
-    private videoStreams: Array<any> = [];
+    private videos: any = {};
+    private videoStreams: any = {};
 
     private rtc: any;
     private socket: any;
     private haveLocalMedia: boolean = false;
-    private originPC: any;
-    private pc: Array<any> = [];
-    private dc: Array<any> = [];
+    private pc: any = {};
+    private dc: any = {};
     private peers: Array<any> = [];
     private constraints: any = {
         mandatory: {
@@ -47,13 +48,13 @@ export class AppComponent {
     ngOnInit() {
         this.room = null;
         this.getMedia();
-  
+
         this.socket = io();
-  
-        this.socket.on('id', function (data) {
-            console.log(data);
+
+        this.socket.on('welcome', function (data) {
+            this.sid = data.sid;
         });
-  
+
         this.socket.on('auth', (data) => {
             if (data.valid) {
                 if (data.usable) {
@@ -64,10 +65,7 @@ export class AppComponent {
                     this.room = data.room;
                     this.peers = data.peers;
                     if (data.connectable) {
-                        for (let i of this.peers) {
-                            this.pc[i] = this.createPC(i);
-                            this.offer(i);
-                        }
+                        this.offer();
                     }
                 } else {
                     this.openDialog(AlreadyBeUsedDialog);
@@ -76,11 +74,11 @@ export class AppComponent {
                 this.openDialog(AuthencationFailureDialog);
             }
         });
-  
+
         this.socket.on('message', (data) => {
-            let i = data.sender;
+            let i = data.from;
             let msg = data.content;
-  
+
             if (msg.type === "offer") {
                 this.peers.push(i);
                 this.pc[i] = this.createPC(i);
@@ -94,9 +92,12 @@ export class AppComponent {
         });
 
         this.socket.on('leave', (data) => {
-            let index: number = this.peers.indexOf(data.uid);
+            let sid = data.sid;
+            let index: number = this.peers.indexOf(sid);
             if (index !== -1) {
                 this.peers.splice(index, 1);
+                delete this.pc.sid;
+                delete this.dc.sid;
             }
         })
     }
@@ -115,13 +116,14 @@ export class AppComponent {
     };
 
     gotUserMedia = (stream) => {
-        this.videoStreams[0] = stream;
+        let sid = this.sid;
+        this.videoStreams[sid] = stream;
         this.haveLocalMedia = true;
 
-        this.videos[0] = document.getElementById('myVideo').querySelector('video');
-        this.videos[0].srcObject = this.videoStreams[0];
-        this.videos[0].onloadedmetadata = (e) => {
-            this.videos[0].play();
+        this.videos[sid] = document.getElementById('myVideo').querySelector('video');
+        this.videos[sid].srcObject = this.videoStreams[sid];
+        this.videos[sid].onloadedmetadata = (e) => {
+            this.videos[sid].play();
         };
 
     };
@@ -140,27 +142,35 @@ export class AppComponent {
         this.pc[i].addStream(this.videoStreams[0]);
     }
 
-    offer = (i) => {
-        this.dc[i] = this.pc[i].createDataChannel('chat');
-        this.setupDataHandlers(i);
-        this.pc[i].createOffer((localDesc) => {
-            this.pc[i].setLocalDescription(localDesc);
-            this.send(localDesc);
-        }, this.doNothing, this.constraints);
+    offer = () => {
+        for (let i of this.peers) {
+            this.pc[i] = this.createPC(i);
+            this.dc[i] = this.pc[i].createDataChannel('chat');
+            this.setupDataHandlers(i);
+            this.pc[i].createOffer((localDesc) => {
+                this.pc[i].setLocalDescription(localDesc);
+                this.send(localDesc, i, true);
+            }, this.doNothing, this.constraints);
+        }
+
     }
 
     answer = (i) => {
         this.pc[i].createAnswer((localDesc) => {
             this.pc[i].setLocalDescription(localDesc);
-            this.send(localDesc);
+            this.send(localDesc, i, true);
         }, this.doNothing, this.constraints);
     }
 
     doNothing() {
     };
 
-    send = (msg) => {
-        this.socket.emit('message', { room: this.room, sender: this.uid, msg: msg });
+    send = (msg, to, isOfferAnswer=false) => {
+        if (isOfferAnswer) {
+            this.socket.emit('message', { to: to, username: this.username, status: this.status, msg: msg });
+        } else {
+            this.socket.emit('message', { to: to, msg: msg });
+        }
     }
 
     createPC = function (i) {
@@ -168,7 +178,7 @@ export class AppComponent {
 
         let onIceCandidate = (e) => {
             if (e.candidate) {
-                this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate});
+                this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate}, i);
             }
         };
 
@@ -273,9 +283,9 @@ export class AppComponent {
     }
 
     sendData(chunk) : void {
-      for (let i of this.peers) {
-        this.dc[i].send(chunk);
-      }
+        for (let i of this.peers) {
+            this.dc[i].send(chunk);
+        }
     }
 
     openDialog = (type) => {

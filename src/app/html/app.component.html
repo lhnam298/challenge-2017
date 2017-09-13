@@ -3,5 +3,5 @@
 	<input mdInput [(ngModel)]="lid" placeholder="Login ID">
 </md-input-container>
 <button md-button (click)="connect()" *ngIf="!authenticated">Connect!</button>
-<media-area [(username)]="username" [(status)]="status"></media-area>
+<media-area [(username)]="username" [(status)]="status" [(peers)]="peers"></media-area>
 <chat-box (onSendChat)="sendChat($event)" (onTransferData)="sendData($event)" (onTransferMeta)="sendMeta($event)" [(msgs)]="msgs"></chat-box>

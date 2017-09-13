@@ -10,6 +10,7 @@ export class MediaAreaComponent implements OnInit {
 
     @Input() username: string;
     @Input() status: string;
+    @Input() peers: Array<string>;
 
     constructor() {
 

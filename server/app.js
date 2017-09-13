@@ -27,6 +27,8 @@ app.get('/', function (req, res) {
 
 io.on('connection', function (socket) {
 
+    socket.emit('welcome', { sid: socket.id });
+
     socket.on('auth', function (data) {
 
         var lid = data.lid;
@@ -65,13 +67,20 @@ io.on('connection', function (socket) {
             return data;
 
         }).then(function(data) {
-            var sql = 'SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ? AND ?? != ?';
-            con.query(sql, ['id', 'users', 'login_status', 1, 'del_flg', 0, 'id', data.id], function (err, result) {
+//            var sql = 'SELECT ??, ??, ?? FROM ?? WHERE ?? = ? AND ?? = ? AND ?? = ? AND ?? != ?';
+//            con.query(sql, ['socket_id', 'username', 'status', 'users', 'room', data.room, 'login_status', 1, 'del_flg', 0, 'id', data.id], function (err, result) {
+              var sql = 'SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ? AND ?? = ? AND ?? != ?';
+              con.query(sql, ['socket_id', 'users', 'room', data.room, 'login_status', 1, 'del_flg', 0, 'id', data.id], function (err, result) {
                 if (err) throw err;
 
                 peers = [];
                 for (var i=0;  i<result.length; i++) {
-                    peers.push(result[i].id);
+                  peers.push(result[i].socket_id);
+//                    peers.push({
+//                        'sid': result[i].socket_id,
+//                        'username': result[i].username,
+//                        'status': result[i].status
+//                    });
                 }
 
                 socket.emit('auth', {
@@ -91,16 +100,16 @@ io.on('connection', function (socket) {
     });
 
     socket.on('message', function (data) {
-        socket.to(data.room).emit('message', {sender: data.sender, content: data.msg});
+      console.log(data);
+        socket.to(data.to).emit('message', { from: socket.id, content: data.msg });
     });
 
     socket.on('disconnect', (reason) => {
         var sql = 'SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?';
         con.query(sql, ['id', 'users', 'socket_id', socket.id, 'login_status', 1], function (err, result) {
             if (err) throw err;
-            socket.emit('leave', {
-                uid: result[0].id
-            });
+
+            if (result.length == 0) return;
 
             var sql = 'UPDATE ?? SET ?? = ?, ?? = ? WHERE ?? = ?';
             con.query(sql, ['users', 'socket_id', null, 'login_status', 0, 'socket_id', socket.id], function (err, result) {
@@ -114,8 +123,10 @@ io.on('connection', function (socket) {
     });
 
     socket.on('disconnecting', (reason) => {
-      let rooms = Object.keys(socket.rooms);
-      console.log(rooms);
-      // ...
+        let rooms = Object.keys(socket.rooms);
+        console.log(rooms);
+        socket.to(rooms[0]).emit('leave', {
+            sid: socket.id
+        });
     });
 });
