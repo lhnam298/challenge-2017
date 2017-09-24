@@ -16,8 +16,12 @@ export class AppComponent {
     private uid: number;
     private sid: string;
 
-    private username: string;
-    private status: string;
+    private myProfile: any = {
+        username: '',
+        status: '',
+        avatar: ''
+    }
+
     private room: number;
     private authenticated: boolean = false;
 
@@ -60,8 +64,9 @@ export class AppComponent {
                 if (data.usable) {
                     this.authenticated = true;
                     this.uid = data.uid;
-                    this.username = data.username;
-                    this.status = data.status;
+                    this.myProfile.username = data.username;
+                    this.myProfile.status = data.status;
+                    this.myProfile.avatar = data.avatar;
                     this.room = data.room;
                     this.peers = data.peers;
                     if (data.connectable) {
@@ -76,28 +81,34 @@ export class AppComponent {
         });
 
         this.socket.on('message', (data) => {
-            let i = data.from;
             let msg = data.content;
+            let peer: any = {
+                sid: data.from,
+                username: data.username,
+                status: data.status
+            }
 
             if (msg.type === "offer") {
-                this.peers.push(i);
-                this.pc[i] = this.createPC(i);
-                this.pc[i].setRemoteDescription(new RTCSessionDescription(msg));
-                this.answer(i);
+                this.peers.push(peer);
+                this.pc[peer.sid] = this.createPC(peer.sid);
+                this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
+                this.answer(peer.sid);
             } else if (msg.type === "answer") {
-                this.pc[i].setRemoteDescription(new RTCSessionDescription(msg));
+                this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
             } else if (msg.type === "candidate") {
-                this.pc[i].addIceCandidate(new RTCIceCandidate({sdpMLineIndex:msg.mlineindex, candidate:msg.candidate}));
+                this.pc[peer.sid].addIceCandidate(new RTCIceCandidate({sdpMLineIndex:msg.mlineindex, candidate:msg.candidate}));
             }
         });
 
         this.socket.on('leave', (data) => {
-            let sid = data.sid;
-            let index: number = this.peers.indexOf(sid);
-            if (index !== -1) {
-                this.peers.splice(index, 1);
-                delete this.pc.sid;
-                delete this.dc.sid;
+            let sid: string = data.sid;
+            for (let i: number = 0; i < this.peers.length; i++) {
+                if (this.peers[i].sid === sid) {
+                    this.peers.splice(i, 1);
+                    delete this.pc.sid;
+                    delete this.dc.sid;
+                    break;
+                }
             }
         })
     }
@@ -132,9 +143,9 @@ export class AppComponent {
         console.log(err.name + ": " + err.message);
     };
 
-    attachMediaIfReady(i) {
-        if (this.pc[i] && this.haveLocalMedia) {
-            this.attachMedia(i);
+    attachMediaIfReady(sid) {
+        if (this.pc[sid] && this.haveLocalMedia) {
+            this.attachMedia(sid);
         }
     }
 
@@ -143,34 +154,30 @@ export class AppComponent {
     }
 
     offer = () => {
-        for (let i of this.peers) {
-            this.pc[i] = this.createPC(i);
-            this.dc[i] = this.pc[i].createDataChannel('chat');
-            this.setupDataHandlers(i);
-            this.pc[i].createOffer((localDesc) => {
-                this.pc[i].setLocalDescription(localDesc);
-                this.send(localDesc, i, true);
+        for (let peer of this.peers) {
+            this.pc[peer.sid] = this.createPC(peer.sid);
+            this.dc[peer.sid] = this.pc[peer.sid].createDataChannel('chat');
+            this.setupDataHandlers(peer.sid);
+            this.pc[peer.sid].createOffer((localDesc) => {
+                this.pc[peer.sid].setLocalDescription(localDesc);
+                this.send(localDesc, peer.sid);
             }, this.doNothing, this.constraints);
         }
 
     }
 
-    answer = (i) => {
-        this.pc[i].createAnswer((localDesc) => {
-            this.pc[i].setLocalDescription(localDesc);
-            this.send(localDesc, i, true);
+    answer = (sid) => {
+        this.pc[sid].createAnswer((localDesc) => {
+            this.pc[sid].setLocalDescription(localDesc);
+            this.send(localDesc, sid);
         }, this.doNothing, this.constraints);
     }
 
     doNothing() {
     };
 
-    send = (msg, to, isOfferAnswer=false) => {
-        if (isOfferAnswer) {
-            this.socket.emit('message', { to: to, username: this.username, status: this.status, msg: msg });
-        } else {
-            this.socket.emit('message', { to: to, msg: msg });
-        }
+    send = (msg, to) => {
+        this.socket.emit('message', { to: to, username: this.myProfile.username, status: this.myProfile.status, msg: msg });
     }
 
     createPC = function (i) {
@@ -267,8 +274,8 @@ export class AppComponent {
           type: 'chat',
           content: msg
         });
-        for (let i of this.peers) {
-            this.dc[i].send(data);
+        for (let peer of this.peers) {
+            this.dc[peer.sid].send(data);
         }
     }
 
@@ -277,14 +284,14 @@ export class AppComponent {
           type: 'candidate',
           content: meta
         });
-        for (let i of this.peers) {
-          this.dc[i].send(data);
+        for (let peer of this.peers) {
+          this.dc[peer.sid].send(data);
         }
     }
 
     sendData(chunk) : void {
-        for (let i of this.peers) {
-            this.dc[i].send(chunk);
+        for (let peer of this.peers) {
+            this.dc[peer.sid].send(chunk);
         }
     }
 
@@ -292,9 +299,4 @@ export class AppComponent {
         this.dialog.open(type);
     };
 
-    createVideoBox(sender) : void {
-//      let parent = document.getElementsByClassName('media-area');
-//      let child = '<video-frame id="partner_'+ sender +'"></video-frame>';
-//      parent.innerHTML = child;
-    }
 }

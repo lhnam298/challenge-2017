@@ -63,6 +63,11 @@ var AppComponent = (function () {
         var _this = this;
         this.dialog = dialog;
         this.msgs = [];
+        this.myProfile = {
+            username: '',
+            status: '',
+            avatar: ''
+        };
         this.authenticated = false;
         this.videos = {};
         this.videoStreams = {};
@@ -101,34 +106,28 @@ var AppComponent = (function () {
             console.log(err.name + ": " + err.message);
         };
         this.offer = function () {
-            var _loop_1 = function (i) {
-                _this.pc[i] = _this.createPC(i);
-                _this.dc[i] = _this.pc[i].createDataChannel('chat');
-                _this.setupDataHandlers(i);
-                _this.pc[i].createOffer(function (localDesc) {
-                    _this.pc[i].setLocalDescription(localDesc);
-                    _this.send(localDesc, i, true);
+            var _loop_1 = function (peer) {
+                _this.pc[peer.sid] = _this.createPC(peer.sid);
+                _this.dc[peer.sid] = _this.pc[peer.sid].createDataChannel('chat');
+                _this.setupDataHandlers(peer.sid);
+                _this.pc[peer.sid].createOffer(function (localDesc) {
+                    _this.pc[peer.sid].setLocalDescription(localDesc);
+                    _this.send(localDesc, peer.sid);
                 }, _this.doNothing, _this.constraints);
             };
             for (var _i = 0, _a = _this.peers; _i < _a.length; _i++) {
-                var i = _a[_i];
-                _loop_1(i);
+                var peer = _a[_i];
+                _loop_1(peer);
             }
         };
-        this.answer = function (i) {
-            _this.pc[i].createAnswer(function (localDesc) {
-                _this.pc[i].setLocalDescription(localDesc);
-                _this.send(localDesc, i, true);
+        this.answer = function (sid) {
+            _this.pc[sid].createAnswer(function (localDesc) {
+                _this.pc[sid].setLocalDescription(localDesc);
+                _this.send(localDesc, sid);
             }, _this.doNothing, _this.constraints);
         };
-        this.send = function (msg, to, isOfferAnswer) {
-            if (isOfferAnswer === void 0) { isOfferAnswer = false; }
-            if (isOfferAnswer) {
-                _this.socket.emit('message', { to: to, username: _this.username, status: _this.status, msg: msg });
-            }
-            else {
-                _this.socket.emit('message', { to: to, msg: msg });
-            }
+        this.send = function (msg, to) {
+            _this.socket.emit('message', { to: to, username: _this.myProfile.username, status: _this.myProfile.status, msg: msg });
         };
         this.createPC = function (i) {
             var _this = this;
@@ -179,8 +178,9 @@ var AppComponent = (function () {
                 if (data.usable) {
                     _this.authenticated = true;
                     _this.uid = data.uid;
-                    _this.username = data.username;
-                    _this.status = data.status;
+                    _this.myProfile.username = data.username;
+                    _this.myProfile.status = data.status;
+                    _this.myProfile.avatar = data.avatar;
                     _this.room = data.room;
                     _this.peers = data.peers;
                     if (data.connectable) {
@@ -196,34 +196,40 @@ var AppComponent = (function () {
             }
         });
         this.socket.on('message', function (data) {
-            var i = data.from;
             var msg = data.content;
+            var peer = {
+                sid: data.from,
+                username: data.username,
+                status: data.status
+            };
             if (msg.type === "offer") {
-                _this.peers.push(i);
-                _this.pc[i] = _this.createPC(i);
-                _this.pc[i].setRemoteDescription(new RTCSessionDescription(msg));
-                _this.answer(i);
+                _this.peers.push(peer);
+                _this.pc[peer.sid] = _this.createPC(peer.sid);
+                _this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
+                _this.answer(peer.sid);
             }
             else if (msg.type === "answer") {
-                _this.pc[i].setRemoteDescription(new RTCSessionDescription(msg));
+                _this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
             }
             else if (msg.type === "candidate") {
-                _this.pc[i].addIceCandidate(new RTCIceCandidate({ sdpMLineIndex: msg.mlineindex, candidate: msg.candidate }));
+                _this.pc[peer.sid].addIceCandidate(new RTCIceCandidate({ sdpMLineIndex: msg.mlineindex, candidate: msg.candidate }));
             }
         });
         this.socket.on('leave', function (data) {
             var sid = data.sid;
-            var index = _this.peers.indexOf(sid);
-            if (index !== -1) {
-                _this.peers.splice(index, 1);
-                delete _this.pc.sid;
-                delete _this.dc.sid;
+            for (var i = 0; i < _this.peers.length; i++) {
+                if (_this.peers[i].sid === sid) {
+                    _this.peers.splice(i, 1);
+                    delete _this.pc.sid;
+                    delete _this.dc.sid;
+                    break;
+                }
             }
         });
     };
-    AppComponent.prototype.attachMediaIfReady = function (i) {
-        if (this.pc[i] && this.haveLocalMedia) {
-            this.attachMedia(i);
+    AppComponent.prototype.attachMediaIfReady = function (sid) {
+        if (this.pc[sid] && this.haveLocalMedia) {
+            this.attachMedia(sid);
         }
     };
     AppComponent.prototype.attachMedia = function (i) {
@@ -284,8 +290,8 @@ var AppComponent = (function () {
             content: msg
         });
         for (var _i = 0, _a = this.peers; _i < _a.length; _i++) {
-            var i = _a[_i];
-            this.dc[i].send(data);
+            var peer = _a[_i];
+            this.dc[peer.sid].send(data);
         }
     };
     AppComponent.prototype.sendMeta = function (meta) {
@@ -294,20 +300,15 @@ var AppComponent = (function () {
             content: meta
         });
         for (var _i = 0, _a = this.peers; _i < _a.length; _i++) {
-            var i = _a[_i];
-            this.dc[i].send(data);
+            var peer = _a[_i];
+            this.dc[peer.sid].send(data);
         }
     };
     AppComponent.prototype.sendData = function (chunk) {
         for (var _i = 0, _a = this.peers; _i < _a.length; _i++) {
-            var i = _a[_i];
-            this.dc[i].send(chunk);
+            var peer = _a[_i];
+            this.dc[peer.sid].send(chunk);
         }
-    };
-    AppComponent.prototype.createVideoBox = function (sender) {
-        //      let parent = document.getElementsByClassName('media-area');
-        //      let child = '<video-frame id="partner_'+ sender +'"></video-frame>';
-        //      parent.innerHTML = child;
     };
     return AppComponent;
 }());
@@ -573,12 +574,8 @@ var MediaAreaComponent = (function () {
 }());
 __decorate([
     __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["O" /* Input */])(),
-    __metadata("design:type", String)
-], MediaAreaComponent.prototype, "username", void 0);
-__decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["O" /* Input */])(),
-    __metadata("design:type", String)
-], MediaAreaComponent.prototype, "status", void 0);
+    __metadata("design:type", Object)
+], MediaAreaComponent.prototype, "myProfile", void 0);
 __decorate([
     __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["O" /* Input */])(),
     __metadata("design:type", Object)
@@ -676,10 +673,10 @@ var VideoFrameComponent = (function () {
     function VideoFrameComponent() {
     }
     VideoFrameComponent.prototype.ngOnInit = function () {
-        this.hide_video = false;
+        this.hideVideo = false;
     };
-    VideoFrameComponent.prototype.hideVideo = function () {
-        this.hide_video = true;
+    VideoFrameComponent.prototype.hide = function () {
+        this.hideVideo = true;
     };
     return VideoFrameComponent;
 }());
@@ -691,6 +688,10 @@ __decorate([
     __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["O" /* Input */])(),
     __metadata("design:type", String)
 ], VideoFrameComponent.prototype, "status", void 0);
+__decorate([
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["O" /* Input */])(),
+    __metadata("design:type", String)
+], VideoFrameComponent.prototype, "avatar", void 0);
 VideoFrameComponent = __decorate([
     __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_3" /* Component */])({
         selector: 'video-frame',
@@ -849,14 +850,14 @@ module.exports = module.exports.toString();
 /***/ 204:
 /***/ (function(module, exports) {
 
-module.exports = "<menu-bar></menu-bar>\n<md-input-container>\n\t<input mdInput [(ngModel)]=\"lid\" placeholder=\"Login ID\">\n</md-input-container>\n<button md-button (click)=\"connect()\" *ngIf=\"!authenticated\">Connect!</button>\n<media-area [(username)]=\"username\" [(status)]=\"status\" [(peers)]=\"peers\"></media-area>\n<chat-box (onSendChat)=\"sendChat($event)\" (onTransferData)=\"sendData($event)\" (onTransferMeta)=\"sendMeta($event)\" [(msgs)]=\"msgs\"></chat-box>\n"
+module.exports = "<menu-bar></menu-bar>\n<md-input-container>\n\t<input mdInput [(ngModel)]=\"lid\" placeholder=\"Login ID\">\n</md-input-container>\n<button md-button (click)=\"connect()\" *ngIf=\"!authenticated\">Connect!</button>\n<media-area [(myProfile)]=\"myProfile\" [(peers)]=\"peers\"></media-area>\n<chat-box (onSendChat)=\"sendChat($event)\" (onTransferData)=\"sendData($event)\" (onTransferMeta)=\"sendMeta($event)\" [(msgs)]=\"msgs\"></chat-box>\n"
 
 /***/ }),
 
 /***/ 205:
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"chat-box\">\n\t<div class=\"chat-box-output\">\n\t\t<md-chip-list *ngFor=\"let msg of msgs\" [ngClass]=\"msg.msg_type\">\n\t\t\t<md-chip>{{msg.content}}</md-chip>\n\t\t</md-chip-list>\n\t\t<progress-bar></progress-bar>\n\t</div>\n\t<div class=\"chat-box-input\">\n\t\t<attachment-icon (onReadContent)=\"transferData($event)\" (onReadInfo)=\"transferMeta($event)\"></attachment-icon>\n\t\t<md-input-container class=\"input-full-width\">\n\t\t\t<textarea [(ngModel)]=\"txt\" (keyup.enter)=\"sendMessage()\" mdInput placeholder=\"Type some text\"></textarea>\n\t\t</md-input-container>\n\t</div>\n</div>"
+module.exports = "<div class=\"chat-box\">\n\t<div class=\"chat-box-output\">\n\t\t<md-chip-list *ngFor=\"let msg of msgs\" [ngClass]=\"msg.msg_type\">\n\t\t\t<md-chip>{{msg.content}}</md-chip>\n\t\t</md-chip-list>\n\t\t<!-- <progress-bar></progress-bar> -->\n\t</div>\n\t<div class=\"chat-box-input\">\n\t\t<attachment-icon (onReadContent)=\"transferData($event)\" (onReadInfo)=\"transferMeta($event)\"></attachment-icon>\n\t\t<md-input-container class=\"input-full-width\">\n\t\t\t<textarea [(ngModel)]=\"txt\" (keyup.enter)=\"sendMessage()\" mdInput placeholder=\"Type some text\"></textarea>\n\t\t</md-input-container>\n\t</div>\n</div>"
 
 /***/ }),
 
@@ -884,7 +885,7 @@ module.exports = "<label>\n\t<md-icon svgIcon=\"attachment\" class=\"attachment\
 /***/ 209:
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"media-area\">\n\t<video-frame id=\"myVideo\" [(username)]=\"username\" [(status)]=\"status\"></video-frame>\n\t<video-frame *ngFor=\"let peer of peers\" [id]=\"peer\"></video-frame>\n\t<!-- <video-frame id=\"yourVideo_1\" [(username)]=\"username_1\" [(status)]=\"status_1\"></video-frame>\n\t<video-frame id=\"yourVideo_2\" [(username)]=\"username_2\" [(status)]=\"status_2\"></video-frame>\n\t<video-frame id=\"yourVideo_3\" [(username)]=\"username_3\" [(status)]=\"status_3\"></video-frame> -->\n</div>\n"
+module.exports = "<div class=\"media-area\">\n\t<video-frame id=\"myVideo\" [(username)]=\"myProfile.username\" [(status)]=\"myProfile.status\" [(avatar)]=\"myProfile.avatar\"></video-frame>\n\t<video-frame *ngFor=\"let peer of peers\" [id]=\"peer.sid\" [(username)]=\"peer.username\" [(status)]=\"peer.status\" [(avatar)]=\"peer.avatar\"></video-frame>\n</div>\n"
 
 /***/ }),
 
@@ -905,7 +906,7 @@ module.exports = "<md-progress-bar mode=\"indeterminate\" color=\"primary\"></md
 /***/ 212:
 /***/ (function(module, exports) {
 
-module.exports = "<md-card class=\"video-frame\" *ngIf=\"!hide_video\">\n\t<md-card-header class=\"info\">\n\t\t<div md-card-avatar class=\"avatar-image\"></div>\n\t\t<md-card-title>{{username}}</md-card-title>\n\t\t<md-card-subtitle>{{status}}</md-card-subtitle>\n\t</md-card-header>\n\t<md-card-content>\n\t\t<video autoplay></video>\n\t</md-card-content>\n\t<md-card-actions>\n\t\t<button md-button>BUZZ</button>\n\t\t<button md-button (click)='hideVideo()'>HIDE</button>\n\t</md-card-actions>\n</md-card>"
+module.exports = "<md-card class=\"video-frame\" *ngIf=\"!hideVideo\">\n\t<md-card-header class=\"info\">\n\t\t<div md-card-avatar class=\"avatar-image\" [ngStyle]=\"{'background-image': 'url(' + avatar + ')'}\"></div>\n\t\t<md-card-title>{{username}}</md-card-title>\n\t\t<md-card-subtitle>{{status}}</md-card-subtitle>\n\t</md-card-header>\n\t<md-card-content>\n\t\t<video autoplay></video>\n\t</md-card-content>\n\t<md-card-actions>\n\t\t<button md-button>BUZZ</button>\n\t\t<button md-button (click)='hide()'>HIDE</button>\n\t</md-card-actions>\n</md-card>"
 
 /***/ }),
 

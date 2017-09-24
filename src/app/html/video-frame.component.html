@@ -1,6 +1,6 @@
-<md-card class="video-frame" *ngIf="!hide_video">
+<md-card class="video-frame" *ngIf="!hideVideo">
 	<md-card-header class="info">
-		<div md-card-avatar class="avatar-image"></div>
+		<div md-card-avatar class="avatar-image" [ngStyle]="{'background-image': 'url(' + avatar + ')'}"></div>
 		<md-card-title>{{username}}</md-card-title>
 		<md-card-subtitle>{{status}}</md-card-subtitle>
 	</md-card-header>
@@ -9,6 +9,6 @@
 	</md-card-content>
 	<md-card-actions>
 		<button md-button>BUZZ</button>
-		<button md-button (click)='hideVideo()'>HIDE</button>
+		<button md-button (click)='hide()'>HIDE</button>
 	</md-card-actions>
 </md-card>

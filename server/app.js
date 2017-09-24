@@ -64,23 +64,22 @@ io.on('connection', function (socket) {
                     }
                 });
             });
-            return data;
+            return Promise.resolve(data);
 
         }).then(function(data) {
-//            var sql = 'SELECT ??, ??, ?? FROM ?? WHERE ?? = ? AND ?? = ? AND ?? = ? AND ?? != ?';
-//            con.query(sql, ['socket_id', 'username', 'status', 'users', 'room', data.room, 'login_status', 1, 'del_flg', 0, 'id', data.id], function (err, result) {
-              var sql = 'SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ? AND ?? = ? AND ?? != ?';
-              con.query(sql, ['socket_id', 'users', 'room', data.room, 'login_status', 1, 'del_flg', 0, 'id', data.id], function (err, result) {
+            var sql = 'SELECT ??, ??, ??, ?? FROM ?? WHERE ?? = ? AND ?? = ? AND ?? = ? AND ?? != ?';
+            con.query(sql, ['socket_id', 'username', 'status', 'avatar_url', 'users', 'room', data.room, 'login_status', 1, 'del_flg', 0, 'id', data.id], function (err, result) {
+
                 if (err) throw err;
 
                 peers = [];
                 for (var i=0;  i<result.length; i++) {
-                  peers.push(result[i].socket_id);
-//                    peers.push({
-//                        'sid': result[i].socket_id,
-//                        'username': result[i].username,
-//                        'status': result[i].status
-//                    });
+                    peers.push({
+                        'sid': result[i].socket_id,
+                        'username': result[i].username,
+                        'status': result[i].status,
+                        'avatar': result[i].avatar_url
+                    });
                 }
 
                 socket.emit('auth', {
@@ -89,6 +88,7 @@ io.on('connection', function (socket) {
                     uid: data.id,
                     username: data.username,
                     status: data.status,
+                    avatar: data.avatar_url,
                     room: data.room,
                     connectable: io.sockets.adapter.rooms[data.room].length > 1 ? true : false,
                     peers: peers
@@ -100,8 +100,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('message', function (data) {
-      console.log(data);
-        socket.to(data.to).emit('message', { from: socket.id, content: data.msg });
+        socket.to(data.to).emit('message', { from: socket.id, username: data.username, status: data.status, content: data.msg });
     });
 
     socket.on('disconnect', (reason) => {

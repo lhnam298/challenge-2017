@@ -8,9 +8,8 @@ import { Component, Input, OnInit } from '@angular/core';
 
 export class MediaAreaComponent implements OnInit {
 
-    @Input() username: string;
-    @Input() status: string;
-    @Input() peers: Array<string>;
+    @Input() myProfile: any;
+    @Input() peers: Array<any>;
 
     constructor() {
 
