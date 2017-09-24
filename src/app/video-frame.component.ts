@@ -10,14 +10,15 @@ export class VideoFrameComponent {
 
   @Input() username: string;
   @Input() status: string;
+  @Input() avatar: string;
 
-  hide_video;
+  private hideVideo: boolean;
 
   ngOnInit() {
-    this.hide_video = false;
+    this.hideVideo = false;
   }
 
-  hideVideo() {
-    this.hide_video = true;
+  hide() {
+    this.hideVideo = true;
   }
 }

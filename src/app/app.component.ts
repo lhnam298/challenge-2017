@@ -4,206 +4,237 @@ import { AuthencationFailureDialog, AlreadyBeUsedDialog } from './dialog.compone
 import { MdDialog } from '@angular/material';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './html/app.component.html',
-  styleUrls: ['./css/app.component.css']
+    selector: 'app-root',
+    templateUrl: './html/app.component.html',
+    styleUrls: ['./css/app.component.css']
 })
 
 export class AppComponent {
 
-    constructor(public dialog: MdDialog) {
+    private msgs: Array<any> = [];
+    private lid: string;
+    private uid: number;
+    private sid: string;
 
+    private myProfile: any = {
+        username: '',
+        status: '',
+        avatar: ''
     }
 
-    rtc;
-    socket;
-    msgs;
-    lid;
-    username: string;
-    status: string;
-    room;
-    authenticated;
+    private room: number;
+    private authenticated: boolean = false;
 
-    incomingFileInfo;
-    incomingFileData;
-    bytesReceived;
+    private incomingFileInfo: any;
+    private incomingFileData: any;
+    private bytesReceived: number;
 
-    public haveLocalMedia = false;
-    public myVideo;
-    public yourVideo;
-    public myVideoStream;
-    public yourVideoStream;
-    public pc;
-    public dc;
-    public constraints = {
+    private videos: any = {};
+    private videoStreams: any = {};
+
+    private rtc: any;
+    private socket: any;
+    private haveLocalMedia: boolean = false;
+    private pc: any = {};
+    private dc: any = {};
+    private peers: Array<any> = [];
+    private constraints: any = {
         mandatory: {
             OfferToReceiveAudio: true,
             OfferToReceiveVideo: true
         }
     };
 
-    connect() {
-        if (this.haveLocalMedia && !this.authenticated) {
-            this.socket.emit('auth', { room: this.room, msg: this.lid });
-        }
+    constructor(public dialog: MdDialog) {
+
     }
 
     ngOnInit() {
-        this.msgs = [];
         this.room = null;
-        this.authenticated = false;
         this.getMedia();
 
         this.socket = io();
 
-        this.socket.on('id', (function (data) {
-            console.log(data);
-        }).bind(this));
+        this.socket.on('welcome', function (data) {
+            this.sid = data.sid;
+        });
 
-        this.socket.on('auth', (function (data) {
-          if (data.valid) {
-              if (data.usable) {
-                  this.authenticated = true;
-                  this.username = data.username;
-                  this.status = data.status;
-                  this.room = data.room;
-                  if (data.connectable) {
-                      this.createPC();
-                      this.offer();
-                  }
-              } else {
-                  this.openDialog(AlreadyBeUsedDialog);
-              }
-          } else {
-              this.openDialog(AuthencationFailureDialog);
-          }
-        }).bind(this));
-
-        this.socket.on('message', (function (data) {
-            if (data.type === "offer") {
-                this.createPC();
-                this.pc.setRemoteDescription(new RTCSessionDescription(data));
-                this.answer();
-            } else if (data.type === "answer") {
-                this.pc.setRemoteDescription(new RTCSessionDescription(data));
-            } else if (data.type === "candidate") {
-                this.pc.addIceCandidate(new RTCIceCandidate({sdpMLineIndex:data.mlineindex, candidate:data.candidate}));
+        this.socket.on('auth', (data) => {
+            if (data.valid) {
+                if (data.usable) {
+                    this.authenticated = true;
+                    this.uid = data.uid;
+                    this.myProfile.username = data.username;
+                    this.myProfile.status = data.status;
+                    this.myProfile.avatar = data.avatar;
+                    this.room = data.room;
+                    this.peers = data.peers;
+                    if (data.connectable) {
+                        this.offer();
+                    }
+                } else {
+                    this.openDialog(AlreadyBeUsedDialog);
+                }
+            } else {
+                this.openDialog(AuthencationFailureDialog);
             }
-        }).bind(this));
+        });
+
+        this.socket.on('message', (data) => {
+            let msg = data.content;
+            let peer: any = {
+                sid: data.from,
+                username: data.username,
+                status: data.status
+            }
+
+            if (msg.type === "offer") {
+                this.peers.push(peer);
+                this.pc[peer.sid] = this.createPC(peer.sid);
+                this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
+                this.answer(peer.sid);
+            } else if (msg.type === "answer") {
+                this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
+            } else if (msg.type === "candidate") {
+                this.pc[peer.sid].addIceCandidate(new RTCIceCandidate({sdpMLineIndex:msg.mlineindex, candidate:msg.candidate}));
+            }
+        });
+
+        this.socket.on('leave', (data) => {
+            let sid: string = data.sid;
+            for (let i: number = 0; i < this.peers.length; i++) {
+                if (this.peers[i].sid === sid) {
+                    this.peers.splice(i, 1);
+                    delete this.pc.sid;
+                    delete this.dc.sid;
+                    break;
+                }
+            }
+        })
     }
 
-    getMedia() {
+    connect = () => {
+        if (this.haveLocalMedia && !this.authenticated) {
+            this.socket.emit('auth', { lid: this.lid });
+        }
+    };
+
+    getMedia = () => {
         navigator.mediaDevices.getUserMedia({
             audio: true,
             video: false
-        }).then(this.gotUserMedia.bind(this)).catch(this.didntGetUserMedia);
-    }
+        }).then(this.gotUserMedia).catch(this.didntGetUserMedia);
+    };
 
-    gotUserMedia(stream) {
-        this.myVideoStream = stream;
+    gotUserMedia = (stream) => {
+        let sid = this.sid;
+        this.videoStreams[sid] = stream;
         this.haveLocalMedia = true;
 
-        this.myVideo = document.getElementById('myVideo').querySelector('video');
-        this.myVideo.srcObject = this.myVideoStream;
-        this.myVideo.onloadedmetadata = (function(e) {
-            this.myVideo.play();
-        }).bind(this);
+        this.videos[sid] = document.getElementById('myVideo').querySelector('video');
+        this.videos[sid].srcObject = this.videoStreams[sid];
+        this.videos[sid].onloadedmetadata = (e) => {
+            this.videos[sid].play();
+        };
 
-        this.attachMediaIfReady();
-    }
+    };
 
-    didntGetUserMedia(err) {
+    didntGetUserMedia = (err) => {
         console.log(err.name + ": " + err.message);
-    }
+    };
 
-    attachMediaIfReady() {
-        if (this.pc && this.haveLocalMedia) {
-            this.attachMedia();
+    attachMediaIfReady(sid) {
+        if (this.pc[sid] && this.haveLocalMedia) {
+            this.attachMedia(sid);
         }
     }
 
-    attachMedia() {
-        this.pc.addStream(this.myVideoStream);
+    attachMedia(i) {
+        this.pc[i].addStream(this.videoStreams[0]);
     }
 
-    offer() {
-        this.dc = this.pc.createDataChannel('chat');
-        this.setupDataHandlers();
-        this.pc.createOffer(this.gotDescription.bind(this), this.doNothing, this.constraints);
+    offer = () => {
+        for (let peer of this.peers) {
+            this.pc[peer.sid] = this.createPC(peer.sid);
+            this.dc[peer.sid] = this.pc[peer.sid].createDataChannel('chat');
+            this.setupDataHandlers(peer.sid);
+            this.pc[peer.sid].createOffer((localDesc) => {
+                this.pc[peer.sid].setLocalDescription(localDesc);
+                this.send(localDesc, peer.sid);
+            }, this.doNothing, this.constraints);
+        }
+
     }
 
-    answer() {
-        this.pc.createAnswer(this.gotDescription.bind(this), this.doNothing, this.constraints);
-    }
-
-    gotDescription(localDesc) {
-        this.pc.setLocalDescription(localDesc);
-        this.send(localDesc);
+    answer = (sid) => {
+        this.pc[sid].createAnswer((localDesc) => {
+            this.pc[sid].setLocalDescription(localDesc);
+            this.send(localDesc, sid);
+        }, this.doNothing, this.constraints);
     }
 
     doNothing() {
     };
 
-    send(msg) {
-        this.socket.emit('message', { room: this.room, msg: msg });
+    send = (msg, to) => {
+        this.socket.emit('message', { to: to, username: this.myProfile.username, status: this.myProfile.status, msg: msg });
     }
 
-    createPC() {
-        var config = [{"url": "stun:stun.l.google.com:19302"}];
+    createPC = function (i) {
+        let config = [{"url": "stun:stun.l.google.com:19302"}];
 
-        this.pc = new RTCPeerConnection({iceServers:config});
-        this.pc.onicecandidate = this.onIceCandidate.bind(this);
-        this.pc.onaddstream = this.onRemoteStreamAdded.bind(this);
-        this.pc.onremovestream = this.onRemoteStreamRemoved;
-        this.pc.ondatachannel = this.onDataChannelAdded.bind(this);
+        let onIceCandidate = (e) => {
+            if (e.candidate) {
+                this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate}, i);
+            }
+        };
 
-        this.attachMediaIfReady();
-    }
+        let onRemoteStreamAdded = function (e) {
+            this.videoStreams[i] = e.stream;
+            this.videos[i] = document.getElementById('yourVideo_' + i).querySelector('video_' + i);
+            this.videos[i].srcObject = this.videoStreams[i];
+            this.videos[i].onloadedmetadata = (e) => {
+                this.videos[i].play();
+            };
+        };
 
-    onIceCandidate(e) {
-        if (e.candidate) {
-            this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate});
+        let onRemoteStreamRemoved = function (e) {
         }
-    }
 
-    onRemoteStreamAdded(e) {
-        this.yourVideoStream = e.stream;
-        this.yourVideo = document.getElementById('yourVideo').querySelector('video');
-        this.yourVideo.srcObject = this.yourVideoStream;
-        this.yourVideo.onloadedmetadata = (function(e) {
-          this.yourVideo.play();
-        }).bind(this);
+        let onDataChannelAdded = (e) => {
+            this.dc[i] = e.channel;
+            this.setupDataHandlers(i);
+        };
+
+        let _pc: any;
+        _pc = new RTCPeerConnection({iceServers:config});
+        _pc.onicecandidate = onIceCandidate;
+        _pc.onaddstream = onRemoteStreamAdded;
+        _pc.onremovestream = onRemoteStreamRemoved;
+        _pc.ondatachannel = onDataChannelAdded;
+        this.attachMediaIfReady(i);
+
+        return _pc;
     };
 
-    onRemoteStreamRemoved(e) {
-    }
+    setupDataHandlers(i) {
+        this.dc[i].onmessage = (function(e) {
+            try {
+              var msg = JSON.parse(e.data);
 
-    onDataChannelAdded(e) {
-        this.dc = e.channel;
-        this.setupDataHandlers();
-    }
+              switch(msg.type) {
+                case 'chat':
+                  this.msgs.push({msg_type: 'receive-msg', content: msg.content});
+                  break;
 
-    setupDataHandlers() {
-        this.dc.onmessage = (function(e) {
-            var msg = JSON.parse(e.data);
+                case 'candidate':
+                  this.startDownload(msg.content);
+                  break;
+              }
 
-            switch(msg.type) {
-              case 'chat':
-                this.msgs.push({msg_type: 'receive-msg', content: msg.content});
-                break;
-
-              case 'candidate':
-                this.startDownload(msg.content);
-                break;
-
-              case 'data':
-                this.progressDownload(msg.content);
-                break;
-
-              default:
-                break;
+            } catch (ex) {
+              this.progressDownload(e.data);
             }
-
         }).bind(this);
     }
 
@@ -211,41 +242,41 @@ export class AppComponent {
       this.incomingFileInfo = JSON.parse(data.toString());
       this.incomingFileData = [];
       this.bytesReceived = 0;
-      console.log( 'incoming file <b>' + this.incomingFileInfo.fileName + '</b> of ' + this.incomingFileInfo.fileSize + ' bytes' );
     }
 
     progressDownload(data) : void {
       this.bytesReceived += data.byteLength;
       this.incomingFileData.push(data);
-      console.log( 'progress: ' +  ((this.bytesReceived / this.incomingFileInfo.fileSize ) * 100).toFixed( 2 ) + '%' );
-      if( this.bytesReceived === this.incomingFileInfo.fileSize ) {
+      if(this.bytesReceived === this.incomingFileInfo.fileSize) {
           this.endDownload();
       }
     }
 
     endDownload() : void {
       var blob = new window.Blob(this.incomingFileData);
-      var anchor = document.createElement( 'a' );
-      anchor.href = URL.createObjectURL( blob );
+      var anchor = document.createElement('a');
+      anchor.href = URL.createObjectURL(blob);
       anchor.download = this.incomingFileInfo.fileName;
       anchor.textContent = 'XXXXXXX';
 
       if( anchor.click ) {
           anchor.click();
       } else {
-          var evt = document.createEvent( 'MouseEvents' );
-          evt.initMouseEvent( 'click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null );
-          anchor.dispatchEvent( evt );
+          var evt = document.createEvent('MouseEvents');
+          evt.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+          anchor.dispatchEvent(evt);
       }
     }
 
-    sendChat(msg) {
+    sendChat(msg) : void {
         this.msgs.push({msg_type: 'send-msg', content: msg});
         var data = JSON.stringify({
           type: 'chat',
           content: msg
         });
-        this.dc.send(data);
+        for (let peer of this.peers) {
+            this.dc[peer.sid].send(data);
+        }
     }
 
     sendMeta(meta) : void {
@@ -253,18 +284,19 @@ export class AppComponent {
           type: 'candidate',
           content: meta
         });
-        this.dc.send(data);
+        for (let peer of this.peers) {
+          this.dc[peer.sid].send(data);
+        }
     }
 
     sendData(chunk) : void {
-        var data = JSON.stringify({
-          type: 'data',
-          content: chunk
-        });
-        this.dc.send(data);
+        for (let peer of this.peers) {
+            this.dc[peer.sid].send(chunk);
+        }
     }
 
-    openDialog(type) {
+    openDialog = (type) => {
         this.dialog.open(type);
-    }
+    };
+
 }
