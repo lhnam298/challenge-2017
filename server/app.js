@@ -1,18 +1,25 @@
 var express = require('express');
+var mysql = require('mysql');
+var fs = require('fs');
 var app = express();
     app.use(express.static('./'));
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
-var mysql = require('mysql');
 
-server.listen(8080);
+var options = {
+    key: fs.readFileSync( '/etc/letsencrypt/archive/aquavina.net/privkey1.pem' ),
+    cert: fs.readFileSync( '/etc/letsencrypt/archive/aquavina.net/cert1.pem' )
+};
+
+var server = require('https').Server(options, app);
+var io = require('socket.io')(server);
+
+server.listen(443);
 var connections = [];
 var con = mysql.createConnection({
-            host: "localhost",
-            user: "root",
-            password: "",
-            database: "challenge"
-    });
+    host: "namlh.crhlbrgm4vzq.ap-northeast-1.rds.amazonaws.com",
+    user: "lhnam298",
+    password: "WvCMBsQdq489h7Hb",
+    database: ""
+});
 
 con.connect(function(err) {
     if (err) throw err;
