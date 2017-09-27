@@ -1,41 +1,12 @@
-var express = require('express');
-var mysql = require('mysql');
-var fs = require('fs');
-var app = express();
-    app.use(express.static('./'));
-
-var options = {
-    key: fs.readFileSync( '/etc/letsencrypt/archive/aquavina.net/privkey1.pem' ),
-    cert: fs.readFileSync( '/etc/letsencrypt/archive/aquavina.net/cert1.pem' )
-};
-
-var server = require('https').Server(options, app);
-var io = require('socket.io')(server);
-
-server.listen(443);
-var connections = [];
-var con = mysql.createConnection({
-    host: "namlh.crhlbrgm4vzq.ap-northeast-1.rds.amazonaws.com",
-    user: "lhnam298",
-    password: "WvCMBsQdq489h7Hb",
-    database: ""
-});
-/*
-app.use(express.static('./dist/'));
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
-var mysql = require('mysql');
+var db = require('./database');
+var core = require('./core');
+var socket = require('socket.io');
 var Promise = require('promise');
 
-server.listen(8080);
-
-var con = mysql.createConnection({
-        host: "localhost",
-        user: "root",
-        password: "",
-        database: "challenge"
-    });
-*/
+var con = db.con;
+var server = core.server;
+var app = core.app;
+var io = socket(server);
 
 con.connect(function(err) {
     if (err) throw err;
@@ -142,15 +113,12 @@ io.on('connection', function (socket) {
         });
     });
 
-<<<<<<< HEAD
-});
-=======
     socket.on('disconnecting', (reason) => {
-        let rooms = Object.keys(socket.rooms);
-        console.log(rooms);
-        socket.to(rooms[0]).emit('leave', {
-            sid: socket.id
-        });
-    });
+      let rooms = Object.keys(socket.rooms);
+      console.log(rooms);
+      socket.to(rooms[0]).emit('leave', {
+          sid: socket.id
+      });
+  });
+
 });
->>>>>>> dev/multipeers
