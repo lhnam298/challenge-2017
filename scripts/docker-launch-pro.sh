@@ -13,4 +13,5 @@ docker run --name $CONTAINER_WEB \
            -e LANG=C \
            -e NODE_ENV=production \
            -v $WWWDIR:/usr/src/app:ro \
+           -v /etc/letsencrypt/archive/aquavina.net/:/usr/src/cert:ro \
 		   -dt n-le/challenge

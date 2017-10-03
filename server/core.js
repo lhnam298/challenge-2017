@@ -10,8 +10,8 @@ app.use(express.static('dist'));
 switch (process.env.NODE_ENV) {
   case 'production':
     var options = {
-      key: fs.readFileSync( '/etc/letsencrypt/archive/aquavina.net/privkey1.pem' ),
-      cert: fs.readFileSync( '/etc/letsencrypt/archive/aquavina.net/cert1.pem' )
+      key: fs.readFileSync( '/usr/src/cert/privkey1.pem' ),
+      cert: fs.readFileSync( '/usr/src/cert/cert1.pem' )
     };
     server = https.createServer(options, app).listen(443);
     break;
