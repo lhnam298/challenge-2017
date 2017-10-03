@@ -5,6 +5,10 @@ if [ $(docker ps -a | grep $CONTAINER_DB | wc -l) == "0" ]; then
 	docker run --name $CONTAINER_DB -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 -d mysql:5.7
 fi
 
+if [ $(docker ps | grep $CONTAINER_DB | wc -l) == "0" ]; then
+	docker start $CONTAINER_DB
+fi
+
 if [ $(docker ps -a | grep $CONTAINER_WEB | wc -l) == "1" ]; then
     docker rm -f $CONTAINER_WEB
 fi

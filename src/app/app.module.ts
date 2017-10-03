@@ -2,7 +2,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpModule } from '@angular/http';
-import { MaterialModule } from '@angular/material';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { AppComponent } from './app.component';
@@ -13,7 +12,6 @@ import { ChatBoxComponent } from './chat-box.component';
 import { AuthencationFailureDialog } from './dialog.component';
 import { AlreadyBeUsedDialog } from './dialog.component';
 import { AttachmentIcon } from './icon.component';
-import { ProgressBar } from './progress.component';
 
 @NgModule({
   declarations: [
@@ -25,7 +23,6 @@ import { ProgressBar } from './progress.component';
     AuthencationFailureDialog,
     AlreadyBeUsedDialog,
     AttachmentIcon,
-    ProgressBar
   ],
   entryComponents: [
     AuthencationFailureDialog,
@@ -35,7 +32,6 @@ import { ProgressBar } from './progress.component';
     BrowserModule,
     FormsModule,
     HttpModule,
-    MaterialModule,
     BrowserAnimationsModule
   ],
   providers: [],
