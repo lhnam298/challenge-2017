@@ -32,7 +32,6 @@ export class AppComponent {
     private videos: any = {};
     private videoStreams: any = {};
 
-    private rtc: any;
     private socket: any;
     private haveLocalMedia: boolean = false;
     private pc: any = {};
@@ -91,6 +90,7 @@ export class AppComponent {
             if (msg.type === "offer") {
                 this.peers.push(peer);
                 this.pc[peer.sid] = this.createPC(peer.sid);
+                this.attachMediaIfReady(peer.sid);
                 this.pc[peer.sid].setRemoteDescription(new RTCSessionDescription(msg));
                 this.answer(peer.sid);
             } else if (msg.type === "answer") {
@@ -105,11 +105,13 @@ export class AppComponent {
             for (let i: number = 0; i < this.peers.length; i++) {
                 if (this.peers[i].sid === sid) {
                     this.peers.splice(i, 1);
-                    delete this.pc.sid;
-                    delete this.dc.sid;
                     break;
                 }
             }
+            delete this.pc[sid];
+            delete this.dc[sid];
+            delete this.videos[sid];
+            delete this.videoStreams[sid];
         })
     }
 
@@ -122,7 +124,7 @@ export class AppComponent {
     getMedia = () => {
         navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: false
+            video: true
         }).then(this.gotUserMedia).catch(this.didntGetUserMedia);
     };
 
@@ -149,8 +151,8 @@ export class AppComponent {
         }
     }
 
-    attachMedia(i) {
-        this.pc[i].addStream(this.videoStreams[0]);
+    attachMedia(sid) {
+        this.pc[sid].addStream(this.videoStreams[this.sid]);
     }
 
     offer = () => {
@@ -158,6 +160,7 @@ export class AppComponent {
             this.pc[peer.sid] = this.createPC(peer.sid);
             this.dc[peer.sid] = this.pc[peer.sid].createDataChannel('chat');
             this.setupDataHandlers(peer.sid);
+            this.attachMediaIfReady(peer.sid);
             this.pc[peer.sid].createOffer((localDesc) => {
                 this.pc[peer.sid].setLocalDescription(localDesc);
                 this.send(localDesc, peer.sid);
@@ -180,30 +183,30 @@ export class AppComponent {
         this.socket.emit('message', { to: to, username: this.myProfile.username, status: this.myProfile.status, msg: msg });
     }
 
-    createPC = function (i) {
-        let config = [{"url": "stun:stun.l.google.com:19302"}];
+    createPC = function (sid) {
+        let config = [{"urls": "stun:stun.l.google.com:19302"}];
 
         let onIceCandidate = (e) => {
             if (e.candidate) {
-                this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate}, i);
+                this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate}, sid);
             }
         };
 
-        let onRemoteStreamAdded = function (e) {
-            this.videoStreams[i] = e.stream;
-            this.videos[i] = document.getElementById('yourVideo_' + i).querySelector('video_' + i);
-            this.videos[i].srcObject = this.videoStreams[i];
-            this.videos[i].onloadedmetadata = (e) => {
-                this.videos[i].play();
+        let onRemoteStreamAdded = (e) => {
+            this.videoStreams[sid] = e.stream;
+            this.videos[sid] = document.getElementById(sid).querySelector('video');
+            this.videos[sid].srcObject = this.videoStreams[sid];
+            this.videos[sid].onloadedmetadata = (e) => {
+                this.videos[sid].play();
             };
         };
 
-        let onRemoteStreamRemoved = function (e) {
+        let onRemoteStreamRemoved = (e) => {
         }
 
         let onDataChannelAdded = (e) => {
-            this.dc[i] = e.channel;
-            this.setupDataHandlers(i);
+            this.dc[sid] = e.channel;
+            this.setupDataHandlers(sid);
         };
 
         let _pc: any;
@@ -212,13 +215,12 @@ export class AppComponent {
         _pc.onaddstream = onRemoteStreamAdded;
         _pc.onremovestream = onRemoteStreamRemoved;
         _pc.ondatachannel = onDataChannelAdded;
-        this.attachMediaIfReady(i);
 
         return _pc;
     };
 
-    setupDataHandlers(i) {
-        this.dc[i].onmessage = (function(e) {
+    setupDataHandlers(sid) {
+        this.dc[sid].onmessage = (function(e) {
             try {
               var msg = JSON.parse(e.data);
 
