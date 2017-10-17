@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import * as io from 'socket.io-client';
 import { AuthencationFailureDialog, AlreadyBeUsedDialog } from './dialog.component';
-import { MdDialog } from '@angular/material';
+import { MatDialog } from '@angular/material';
 
 @Component({
     selector: 'app-root',
@@ -22,7 +22,6 @@ export class AppComponent {
         avatar: ''
     }
 
-    private room: number;
     private authenticated: boolean = false;
 
     private incomingFileInfo: any;
@@ -44,17 +43,16 @@ export class AppComponent {
         }
     };
 
-    constructor(public dialog: MdDialog) {
+    constructor(public dialog: MatDialog) {
 
     }
 
-    ngOnInit() {
-        this.room = null;
+    ngOnInit = () => {
         this.getMedia();
 
         this.socket = io();
 
-        this.socket.on('welcome', function (data) {
+        this.socket.on('welcome', (data) => {
             this.sid = data.sid;
         });
 
@@ -66,7 +64,6 @@ export class AppComponent {
                     this.myProfile.username = data.username;
                     this.myProfile.status = data.status;
                     this.myProfile.avatar = data.avatar;
-                    this.room = data.room;
                     this.peers = data.peers;
                     if (data.connectable) {
                         this.offer();
@@ -119,14 +116,14 @@ export class AppComponent {
         if (this.haveLocalMedia && !this.authenticated) {
             this.socket.emit('auth', { lid: this.lid });
         }
-    };
+    }
 
     getMedia = () => {
         navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: true
+            video: false
         }).then(this.gotUserMedia).catch(this.didntGetUserMedia);
-    };
+    }
 
     gotUserMedia = (stream) => {
         let sid = this.sid;
@@ -137,21 +134,21 @@ export class AppComponent {
         this.videos[sid].srcObject = this.videoStreams[sid];
         this.videos[sid].onloadedmetadata = (e) => {
             this.videos[sid].play();
-        };
+        }
 
-    };
+    }
 
     didntGetUserMedia = (err) => {
         console.log(err.name + ": " + err.message);
-    };
+    }
 
-    attachMediaIfReady(sid) {
+    attachMediaIfReady = (sid) => {
         if (this.pc[sid] && this.haveLocalMedia) {
             this.attachMedia(sid);
         }
     }
 
-    attachMedia(sid) {
+    attachMedia = (sid) => {
         this.pc[sid].addStream(this.videoStreams[this.sid]);
     }
 
@@ -176,77 +173,72 @@ export class AppComponent {
         }, this.doNothing, this.constraints);
     }
 
-    doNothing() {
-    };
+    doNothing = () => {
+    }
 
     send = (msg, to) => {
         this.socket.emit('message', { to: to, username: this.myProfile.username, status: this.myProfile.status, msg: msg });
     }
 
-    createPC = function (sid) {
+    createPC = (sid) => {
         let config = [{"urls": "stun:stun.l.google.com:19302"}];
+        let _pc: any;
 
-        let onIceCandidate = (e) => {
+        _pc = new RTCPeerConnection({iceServers:config});
+        _pc.onicecandidate = (e) => {
             if (e.candidate) {
                 this.send({type: 'candidate', mlineindex: e.candidate.sdpMLineIndex, candidate: e.candidate.candidate}, sid);
             }
-        };
+        }
 
-        let onRemoteStreamAdded = (e) => {
+        _pc.onaddstream = (e) => {
             this.videoStreams[sid] = e.stream;
             this.videos[sid] = document.getElementById(sid).querySelector('video');
             this.videos[sid].srcObject = this.videoStreams[sid];
             this.videos[sid].onloadedmetadata = (e) => {
                 this.videos[sid].play();
-            };
-        };
-
-        let onRemoteStreamRemoved = (e) => {
+            }
         }
 
-        let onDataChannelAdded = (e) => {
+        _pc.onremovestream = (e) => {
+        }
+
+        _pc.ondatachannel = (e) => {
             this.dc[sid] = e.channel;
             this.setupDataHandlers(sid);
-        };
-
-        let _pc: any;
-        _pc = new RTCPeerConnection({iceServers:config});
-        _pc.onicecandidate = onIceCandidate;
-        _pc.onaddstream = onRemoteStreamAdded;
-        _pc.onremovestream = onRemoteStreamRemoved;
-        _pc.ondatachannel = onDataChannelAdded;
+        }
 
         return _pc;
-    };
-
-    setupDataHandlers(sid) {
-        this.dc[sid].onmessage = (function(e) {
-            try {
-              var msg = JSON.parse(e.data);
-
-              switch(msg.type) {
-                case 'chat':
-                  this.msgs.push({msg_type: 'receive-msg', content: msg.content});
-                  break;
-
-                case 'candidate':
-                  this.startDownload(msg.content);
-                  break;
-              }
-
-            } catch (ex) {
-              this.progressDownload(e.data);
-            }
-        }).bind(this);
     }
 
-    startDownload(data) : void {
+    setupDataHandlers = (sid) => {
+        this.dc[sid].onmessage = (e) => {
+            try {
+                var msg = JSON.parse(e.data);
+
+                switch(msg.type) {
+                    case 'chat':
+                        this.msgs.push({msg_type: 'receive-msg', content: msg.content});
+                        break;
+
+                    case 'candidate':
+                        this.startDownload(msg.content);
+                        break;
+                }
+
+            } catch (ex) {
+                this.progressDownload(e.data);
+            }
+        }
+    }
+
+    startDownload = (data) : void => {
       this.incomingFileInfo = JSON.parse(data.toString());
       this.incomingFileData = [];
       this.bytesReceived = 0;
     }
 
-    progressDownload(data) : void {
+    progressDownload = (data) : void => {
       this.bytesReceived += data.byteLength;
       this.incomingFileData.push(data);
       if(this.bytesReceived === this.incomingFileInfo.fileSize) {
@@ -254,7 +246,7 @@ export class AppComponent {
       }
     }
 
-    endDownload() : void {
+    endDownload = () : void => {
       var blob = new window.Blob(this.incomingFileData);
       var anchor = document.createElement('a');
       anchor.href = URL.createObjectURL(blob);
@@ -270,7 +262,7 @@ export class AppComponent {
       }
     }
 
-    sendChat(msg) : void {
+    sendChat = (msg) : void => {
         this.msgs.push({msg_type: 'send-msg', content: msg});
         var data = JSON.stringify({
           type: 'chat',
@@ -281,7 +273,7 @@ export class AppComponent {
         }
     }
 
-    sendMeta(meta) : void {
+    sendMeta = (meta) : void => {
         var data = JSON.stringify({
           type: 'candidate',
           content: meta
@@ -291,14 +283,14 @@ export class AppComponent {
         }
     }
 
-    sendData(chunk) : void {
+    sendData = (chunk) : void => {
         for (let peer of this.peers) {
             this.dc[peer.sid].send(chunk);
         }
     }
 
-    openDialog = (type) => {
+    openDialog = (type) : void => {
         this.dialog.open(type);
-    };
+    }
 
 }

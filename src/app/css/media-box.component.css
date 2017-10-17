@@ -1,0 +1,23 @@
+.media-box {
+	height: 350px;
+}
+.video-frame {
+	width: 300px;
+	word-break: break-word;
+	float: left;
+	margin: 10px;
+}
+
+.info {
+	height: 61px;
+}
+
+.avatar-image {
+	background-image: url('#');
+	background-size: cover;
+}
+
+video {
+	width: 300px;
+	height: 225px;
+}

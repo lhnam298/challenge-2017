@@ -1,7 +1,7 @@
 <menu-bar></menu-bar>
-<md-input-container>
-	<input mdInput [(ngModel)]="lid" placeholder="Login ID">
-</md-input-container>
-<button md-button (click)="connect()" *ngIf="!authenticated">Connect!</button>
-<media-area [(myProfile)]="myProfile" [(peers)]="peers"></media-area>
+<mat-input-container>
+	<input matInput [(ngModel)]="lid" placeholder="Login ID">
+</mat-input-container>
+<button mat-raised-button color="primary" (click)="connect()" *ngIf="!authenticated">Connect!</button>
+<media-box [(myProfile)]="myProfile" [(peers)]="peers"></media-box>
 <chat-box (onSendChat)="sendChat($event)" (onTransferData)="sendData($event)" (onTransferMeta)="sendMeta($event)" [(msgs)]="msgs"></chat-box>
