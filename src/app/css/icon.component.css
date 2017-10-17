@@ -1,3 +1,13 @@
 .attachment {
 	cursor: pointer;
 }
+
+.navigate-next {
+	float: right;
+	line-height: 350px;
+}
+
+.navigate-before {
+	float: left;
+	line-height: 350px;
+}

@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { MdIconRegistry } from '@angular/material';
+import { MatIconRegistry } from '@angular/material';
 
 @Component({
   selector: 'attachment-icon',
@@ -18,7 +18,7 @@ export class AttachmentIcon {
   @Output() onReadContent = new EventEmitter<any>();
   @Output() onReadInfo = new EventEmitter<any>();
 
-  constructor(iconRegistry: MdIconRegistry, sanitizer: DomSanitizer) {
+  constructor(iconRegistry: MatIconRegistry, sanitizer: DomSanitizer) {
     iconRegistry.addSvgIcon(
         'attachment',
         sanitizer.bypassSecurityTrustResourceUrl('../assets/ic_attachment_black_48px.svg'));
@@ -55,6 +55,46 @@ export class AttachmentIcon {
     let start = this.BYTES_PER_CHUNK * this.currentChunk;
     let end = Math.min( this.file.size, start + this.BYTES_PER_CHUNK );
     this.reader.readAsArrayBuffer( this.file.slice( start, end ) );
+  }
+
+}
+
+@Component({
+  selector: 'navigate-next-icon',
+  templateUrl: './html/icon/navigate-next-icon.html',
+  styleUrls: ['./css/icon.component.css']
+})
+
+export class NavigateNextIcon {
+
+  constructor(iconRegistry: MatIconRegistry, sanitizer: DomSanitizer) {
+    iconRegistry.addSvgIcon(
+        'navigate-next',
+        sanitizer.bypassSecurityTrustResourceUrl('../assets/ic_navigate_next_black_48px.svg'));
+  }
+
+  ngOnInit() {
+
+  }
+
+}
+
+@Component({
+  selector: 'navigate-before-icon',
+  templateUrl: './html/icon/navigate-before-icon.html',
+  styleUrls: ['./css/icon.component.css']
+})
+
+export class NavigateBeforeIcon {
+
+  constructor(iconRegistry: MatIconRegistry, sanitizer: DomSanitizer) {
+    iconRegistry.addSvgIcon(
+        'navigate-before',
+        sanitizer.bypassSecurityTrustResourceUrl('../assets/ic_navigate_before_black_48px.svg'));
+  }
+
+  ngOnInit() {
+
   }
 
 }

@@ -7,23 +7,22 @@ import { MaterialModule } from './material.module';
 
 import { AppComponent } from './app.component';
 import { MenuBarComponent } from './menu-bar.component';
-import { MediaAreaComponent } from './media-area.component';
-import { VideoFrameComponent } from './video-frame.component';
+import { MediaBoxComponent } from './media-box.component';
 import { ChatBoxComponent } from './chat-box.component';
-import { AuthencationFailureDialog } from './dialog.component';
-import { AlreadyBeUsedDialog } from './dialog.component';
-import { AttachmentIcon } from './icon.component';
+import { AuthencationFailureDialog, AlreadyBeUsedDialog } from './dialog.component';
+import { AttachmentIcon, NavigateNextIcon, NavigateBeforeIcon } from './icon.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     MenuBarComponent,
-    MediaAreaComponent,
-    VideoFrameComponent,
+    MediaBoxComponent,
     ChatBoxComponent,
     AuthencationFailureDialog,
     AlreadyBeUsedDialog,
     AttachmentIcon,
+    NavigateNextIcon,
+    NavigateBeforeIcon
   ],
   entryComponents: [
     AuthencationFailureDialog,
