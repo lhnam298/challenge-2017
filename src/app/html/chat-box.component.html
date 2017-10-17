@@ -1,14 +1,13 @@
 <div class="chat-box">
 	<div class="chat-box-output">
-		<md-chip-list *ngFor="let msg of msgs" [ngClass]="msg.msg_type">
-			<md-chip>{{msg.content}}</md-chip>
-		</md-chip-list>
-		<!-- <progress-bar></progress-bar> -->
+		<mat-chip-list *ngFor="let msg of msgs" [ngClass]="msg.msg_type">
+			<mat-chip>{{msg.content}}</mat-chip>
+		</mat-chip-list>
 	</div>
 	<div class="chat-box-input">
 		<attachment-icon (onReadContent)="transferData($event)" (onReadInfo)="transferMeta($event)"></attachment-icon>
-		<md-input-container class="input-full-width">
-			<textarea [(ngModel)]="txt" (keyup.enter)="sendMessage()" mdInput placeholder="Type some text"></textarea>
-		</md-input-container>
+		<mat-input-container class="input-full-width">
+			<textarea [(ngModel)]="txt" (keyup.enter)="sendMessage()" matInput placeholder="Type some text"></textarea>
+		</mat-input-container>
 	</div>
 </div>
