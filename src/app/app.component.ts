@@ -47,7 +47,7 @@ export class AppComponent {
 
     }
 
-    ngOnInit = () => {
+    ngOnInit() {
         this.getMedia();
 
         this.socket = io();
@@ -121,7 +121,7 @@ export class AppComponent {
     getMedia = () => {
         navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: false
+            video: true
         }).then(this.gotUserMedia).catch(this.didntGetUserMedia);
     }
 
