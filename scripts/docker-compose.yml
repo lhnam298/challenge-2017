@@ -1,0 +1,22 @@
+version: "3"
+services:
+  web:
+    image: n-le/challenge
+    ports:
+      - "8080:8080"
+    links:
+      - db
+    volumes:
+      - "./..:/usr/src/app:ro"
+
+    environment:
+      NODE_ENV: "development"
+      IS_DOCKER: 1
+      LANG: "C"
+   
+  db:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
