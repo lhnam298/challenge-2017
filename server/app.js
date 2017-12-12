@@ -115,7 +115,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('message', function (data) {
-        socket.to(data.to).emit('message', { from: socket.id, username: data.username, status: data.status, content: data.msg });
+        socket.to(data.to).emit('message', { from: socket.id, username: data.username, status: data.status, avatar: data.avatar, content: data.msg });
     });
 
     socket.on('disconnect', (reason) => {

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, AfterViewChecked } from '@angular/core';
 
 @Component({
   selector: 'media-box',
@@ -10,6 +10,7 @@ export class MediaBoxComponent implements OnInit {
 
     @Input() myProfile: any;
     @Input() peers: Array<any>;
+    private width: number = 0;
 
     constructor() {
 
@@ -19,9 +20,15 @@ export class MediaBoxComponent implements OnInit {
 
     }
 
-    overWidthSize() {
-      
-      return false;
+    ngAfterViewInit() {
+      this.setVideoBoxWidth();
     }
 
+    ngAfterViewChecked() {
+//      this.setVideoBoxWidth();
+    }
+
+    setVideoBoxWidth = () => {
+        this.width = (this.peers.length + 1) * 190;
+    }
 }

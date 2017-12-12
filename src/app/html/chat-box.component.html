@@ -1,5 +1,5 @@
 <div class="chat-box">
-	<div class="chat-box-output">
+	<div #message_display class="chat-box-output">
 		<mat-chip-list *ngFor="let msg of msgs" [ngClass]="msg.msg_type">
 			<mat-chip>{{msg.content}}</mat-chip>
 		</mat-chip-list>
@@ -7,7 +7,7 @@
 	<div class="chat-box-input">
 		<attachment-icon (onReadContent)="transferData($event)" (onReadInfo)="transferMeta($event)"></attachment-icon>
 		<mat-input-container class="input-full-width">
-			<textarea [(ngModel)]="txt" (keyup.enter)="sendMessage()" matInput placeholder="Type some text"></textarea>
+			<textarea [(ngModel)]="inputMessage" (keyup.enter)="sendMessage()" matInput placeholder="Type some text"></textarea>
 		</mat-input-container>
 	</div>
 </div>

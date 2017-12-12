@@ -1,14 +1,13 @@
 .chat-box {
-	height: 500px;
-	margin: 34px;
+	height: 100%;
 	bottom: 0px;
 	left: 0px;
-	margin-top: 70px;
+	margin: auto;
 }
 
 .chat-box-output {
-	height: 400px;
-	border: 1px solid;
+	height: calc(100% - 94px);
+	border: 1px solid #ccc;
 	border-radius: 5px 5px;
 	overflow: auto;
 }
@@ -20,7 +19,7 @@
 .send-msg {
 	float: left;
 	clear: both;
-	max-width: 300px;
+	max-width: 65%;
 	word-break: normal;
 	margin: 2px 2px 0 2px;
 }
@@ -28,7 +27,7 @@
 .receive-msg {
 	float: right;
 	clear: both;
-	max-width: 300px;
+	max-width: 65%;
 	word-break: normal;
 	margin: 2px 2px 0 2px;
 }
