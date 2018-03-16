@@ -1,7 +1,47 @@
-<menu-bar></menu-bar>
-<mat-input-container>
-	<input matInput [(ngModel)]="lid" placeholder="Login ID">
-</mat-input-container>
-<button mat-raised-button color="primary" (click)="connect()" *ngIf="!authenticated">Connect!</button>
-<media-box [(myProfile)]="myProfile" [(peers)]="peers"></media-box>
-<chat-box (onSendChat)="sendChat($event)" (onTransferData)="sendData($event)" (onTransferMeta)="sendMeta($event)" [(msgs)]="msgs"></chat-box>
+<div class="menu-bar">
+	<span>Realtime communication with WebRTC</span>
+	<div *ngIf="!authenticated" class="login">
+		<mat-input-container>
+			<input matInput [(ngModel)]="lid" placeholder="Login ID">
+		</mat-input-container>
+		<button mat-raised-button color="primary" (click)="connect()">Connect!</button>
+	</div>
+</div>
+
+<div class="media-box">
+	<div [style.width.px]="(peers.length+1)*192">
+		<div id="myVideo">
+			<video autoplay muted></video>
+		</div>
+		<div *ngFor="let peer of peers" [id]="peer.sid">
+			<video autoplay></video>
+		</div>
+	</div>
+</div>
+
+<div class="main">
+	<div class="left-content">
+		<mat-card *ngIf="authenticated" class="card-common">
+			<mat-card-header>
+				<div mat-card-avatar class="card-image" [ngStyle]="{'background-image': 'url(' + myProfile.avatar + ')'}"></div>
+				<div class="card-info">
+					<mat-card-title class="card-name">{{myProfile.username}}</mat-card-title>
+					<mat-card-subtitle class="card-status">{{myProfile.status}}</mat-card-subtitle>
+				</div>
+			</mat-card-header>
+		</mat-card>
+		<mat-card *ngFor="let peer of peers" [id]="peer.sid" class="video-frame" class="card-common">
+			<mat-card-header>
+				<div mat-card-avatar class="card-image" [ngStyle]="{'background-image': 'url(' + peer.avatar + ')'}"></div>
+				<div class="card-info">
+					<mat-card-title class="card-name">{{peer.username}}</mat-card-title>
+					<mat-card-subtitle class="card-status">{{peer.status}}</mat-card-subtitle>
+				</div>
+			</mat-card-header>
+		</mat-card>
+	</div>
+	<chat-box class="right-content" (onSendChat)="sendChat($event)" (onTransferData)="sendData($event)" (onTransferMeta)="sendMeta($event)" [(msgs)]="msgs"></chat-box>
+</div>
+
+		<!-- <navigate-before-icon></navigate-before-icon> -->
+		<!-- <navigate-next-icon></navigate-next-icon> -->

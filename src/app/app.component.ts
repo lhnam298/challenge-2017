@@ -81,7 +81,8 @@ export class AppComponent {
             let peer: any = {
                 sid: data.from,
                 username: data.username,
-                status: data.status
+                status: data.status,
+                avatar: data.avatar
             }
 
             if (msg.type === "offer") {
@@ -110,6 +111,7 @@ export class AppComponent {
             delete this.videos[sid];
             delete this.videoStreams[sid];
         })
+
     }
 
     connect = () => {
@@ -123,6 +125,7 @@ export class AppComponent {
             audio: true,
             video: true
         }).then(this.gotUserMedia).catch(this.didntGetUserMedia);
+
     }
 
     gotUserMedia = (stream) => {
@@ -177,7 +180,7 @@ export class AppComponent {
     }
 
     send = (msg, to) => {
-        this.socket.emit('message', { to: to, username: this.myProfile.username, status: this.myProfile.status, msg: msg });
+        this.socket.emit('message', { to: to, username: this.myProfile.username, status: this.myProfile.status, avatar: this.myProfile.avatar, msg: msg });
     }
 
     createPC = (sid) => {
@@ -218,7 +221,12 @@ export class AppComponent {
 
                 switch(msg.type) {
                     case 'chat':
-                        this.msgs.push({msg_type: 'receive-msg', content: msg.content});
+                        this.msgs.push({
+                          msg_type: 'receive-msg',
+                          username: msg.username,
+                          avatar: msg.avatar,
+                          content: msg.content
+                        });
                         break;
 
                     case 'candidate':
@@ -263,9 +271,14 @@ export class AppComponent {
     }
 
     sendChat = (msg) : void => {
-        this.msgs.push({msg_type: 'send-msg', content: msg});
+        this.msgs.push({
+          msg_type: 'send-msg',
+          content: msg
+        });
         var data = JSON.stringify({
           type: 'chat',
+          username: this.myProfile.username,
+          avatar: this.myProfile.avatar,
           content: msg
         });
         for (let peer of this.peers) {
