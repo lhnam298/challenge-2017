@@ -1,3 +1,2 @@
-# Challenge project
-
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.0.0.
+# Video chat prototype
+This is simple video chat prototype use SPA model.
