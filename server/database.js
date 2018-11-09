@@ -3,9 +3,9 @@ var options;
 switch (process.env.NODE_ENV) {
   case 'production':
     options = {
-      host : "namlh.crhlbrgm4vzq.ap-northeast-1.rds.amazonaws.com",
-      user : "lhnam298",
-      password : "WvCMBsQdq489h7Hb",
+      host : "",
+      user : "",
+      password : "",
       database : ""
     };
     break;
